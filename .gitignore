@@ -1,0 +1,46 @@
+# ─── Python / Backend ──────────────────────────────────────────────────────
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Environment variables — NEVER commit real keys
+.env
+!.env.example
+
+# Vector store (auto-regenerated on startup)
+backend/vector_store/
+
+# Uploaded documents (user data)
+backend/uploads/
+
+# Chat history (user data)
+backend/data/
+
+# ─── Node / Frontend ────────────────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# ─── IDE / OS ───────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Logs ───────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── HuggingFace cache (large model files) ──────────────────────────────────
+.cache/
