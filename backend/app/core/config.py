@@ -27,14 +27,16 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "./uploads")
     MAX_FILE_SIZE: int = 52428800  # 50MB
 
-    # CORS — allow both Vercel frontend and local dev
-    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    # CORS — allow all origins including Vercel
+    ALLOWED_ORIGINS: str = "*"
 
     # Admin
     ADMIN_PASSWORD: str = "admin123"
 
     @property
     def allowed_origins_list(self) -> List[str]:
+        if self.ALLOWED_ORIGINS == "*":
+            return ["*"]
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
 
     class Config:

@@ -1,16 +1,33 @@
 // API configuration and axios instance
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('backend_url');
+    if (saved) return saved.replace(/\/+$/, '');
+
+    // If on Vercel or cloud domain and VITE_API_URL is missing or set to localhost
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      const envUrl = import.meta.env.VITE_API_URL;
+      if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+        return envUrl.replace(/\/+$/, '');
+      }
+      return 'https://crop-disease-knowledge.onrender.com';
+    }
+  }
+
+  return (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+};
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getApiBaseUrl(),
   timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach admin token if available
+// Update baseURL dynamically per request & attach admin token
 api.interceptors.request.use((config) => {
+  config.baseURL = getApiBaseUrl();
   const token = localStorage.getItem('adminToken');
   if (token) {
     config.headers['x-admin-token'] = token;
@@ -72,4 +89,3 @@ export const adminAPI = {
 };
 
 export default api;
-
