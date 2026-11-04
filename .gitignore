@@ -44,3 +44,4 @@ logs/
 
 # ─── HuggingFace cache (large model files) ──────────────────────────────────
 .cache/
+
