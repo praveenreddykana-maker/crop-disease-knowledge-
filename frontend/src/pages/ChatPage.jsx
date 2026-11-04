@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlertCircle, X } from 'lucide-react';
 import ChatMessages from '../components/ChatMessages';
@@ -17,7 +17,7 @@ export default function ChatPage() {
       sentRef.current = true;
       sendMessage(q);
     }
-  }, []);
+  }, [searchParams, messages.length, sendMessage]);
 
   return (
     <div className="flex flex-col h-full">

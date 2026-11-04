@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Simple markdown renderer that handles the most common patterns
  * in chat responses (bold, lists, headers, code) without needing

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, Settings as SettingsIcon, User, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import Logo from './Logo';
 import { adminAPI, getApiBaseUrl } from '../api';

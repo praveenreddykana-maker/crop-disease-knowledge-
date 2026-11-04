@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Shield, Lock, Upload, FileText, Trash2, CheckCircle,
   XCircle, Clock, Database, RefreshCw, AlertTriangle, X
@@ -89,7 +89,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
@@ -107,11 +107,11 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     loadData();
-  }, [token]);
+  }, [loadData]);
 
   const handleUpload = async (file) => {
     if (!file) return;

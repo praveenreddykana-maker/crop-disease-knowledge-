@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, Paperclip } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Send } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 
 const SUGGESTED = [

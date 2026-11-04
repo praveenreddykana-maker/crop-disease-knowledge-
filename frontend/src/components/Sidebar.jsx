@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, MessageSquare, BookOpen, History,
@@ -21,7 +21,7 @@ export default function Sidebar({ isOpen, onClose }) {
   // Close mobile sidebar on route change
   useEffect(() => {
     if (onClose) onClose();
-  }, [location.pathname]);
+  }, [location.pathname, onClose]);
 
   return (
     <>

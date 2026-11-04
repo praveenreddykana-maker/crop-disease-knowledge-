@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  History, Search, Trash2, MessageSquare, AlertCircle, X, RefreshCw
+  History, Search, Trash2, MessageSquare, X, RefreshCw
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useNavigate } from 'react-router-dom';
