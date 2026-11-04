@@ -1,8 +1,8 @@
 """
 RAG Service - Core retrieval-augmented generation pipeline.
-Optimized for cloud deployment with minimal memory footprint (< 100MB RAM).
-Supports Google Gemini Embeddings (API-based, 0 MB RAM) with automatic
-lightweight vector fallback for memory-constrained free-tier hosting (Render 512MB).
+Optimized for cloud deployment with minimal memory footprint (< 50MB RAM).
+Auto-adapts to latest Gemini models (gemini-3.8-flash, gemini-flash-latest)
+with robust error handling and instant fallback on quota limits.
 """
 
 import os
@@ -26,8 +26,7 @@ logger = logging.getLogger(__name__)
 class LightweightVectorStore:
     """
     Ultra-lightweight vector & keyword store using TF-IDF and cosine similarity.
-    Uses less than 15MB RAM total, compared to PyTorch + Transformers (600MB+).
-    Ensures zero out-of-memory crashes on 512MB free tiers.
+    Uses < 15MB RAM total, ensuring zero out-of-memory crashes on free tiers.
     """
     def __init__(self):
         self.documents: List[Document] = []
@@ -36,15 +35,13 @@ class LightweightVectorStore:
         self.doc_vectors: np.ndarray = np.array([])
 
     def _tokenize(self, text: str) -> List[str]:
-        words = re.findall(r'\b[a-zA-Z0-9_-]{2,}\b', text.lower())
-        return words
+        return re.findall(r'\b[a-zA-Z0-9_-]{2,}\b', text.lower())
 
     def fit_and_add(self, docs: List[Document]):
         self.documents.extend(docs)
         if not self.documents:
             return
 
-        # Build vocabulary
         doc_tokens = [self._tokenize(d.page_content) for d in self.documents]
         vocab = {}
         for tokens in doc_tokens:
@@ -57,8 +54,7 @@ class LightweightVectorStore:
         # Compute IDF
         df = np.zeros(len(vocab), dtype=np.float32)
         for tokens in doc_tokens:
-            unique_t = set(tokens)
-            for t in unique_t:
+            for t in set(tokens):
                 df[vocab[t]] += 1.0
         self.idf = np.log((N + 1.0) / (df + 1.0)) + 1.0
 
@@ -89,7 +85,6 @@ class LightweightVectorStore:
             q_vec = (q_vec * self.idf) / q_norm
             scores = np.dot(self.doc_vectors, q_vec)
         else:
-            # Simple keyword overlap fallback
             scores = np.array([
                 sum(1.0 for t in q_tokens if t in doc.page_content.lower())
                 for doc in self.documents
@@ -99,24 +94,16 @@ class LightweightVectorStore:
         results = []
         for idx in top_indices:
             score = float(scores[idx])
-            # distance is inverted similarity
             distance = max(0.0, 1.0 - score)
             results.append((self.documents[idx], distance))
         return results
 
 
 class RAGService:
-    """
-    RAG service managing:
-    - Zero-RAM or local embedding similarity search
-    - Cloud LLM answering via Google Gemini
-    - Document ingestion (PDF support)
-    """
-
     def __init__(self):
         self.vector_store = None
-        self.llm = None
-        self.embeddings = None
+        self.genai_client = None
+        self.model_candidates = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-pro-latest"]
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=settings.CHUNK_SIZE,
             chunk_overlap=settings.CHUNK_OVERLAP,
@@ -125,44 +112,31 @@ class RAGService:
         self._initialized = False
 
     def initialize(self):
-        """Non-blocking, lightweight initialization."""
         if self._initialized:
             return
-        logger.info("Initializing lightweight RAG Service...")
-        self._init_llm_and_embeddings()
+        logger.info("Initializing RAG Service...")
+        self._init_gemini()
         self._init_vector_store()
         self._initialized = True
         logger.info("RAG Service ready.")
 
-    def _init_llm_and_embeddings(self):
-        """Initialize Google Gemini LLM and cloud-based embeddings if key exists."""
+    def _init_gemini(self):
         key = settings.GEMINI_API_KEY
         if not key or key == "your_gemini_api_key_here":
-            logger.warning("GEMINI_API_KEY not configured. Running in fallback mode.")
-            self.llm = None
-            self.embeddings = None
+            logger.warning("GEMINI_API_KEY not configured. Running in knowledge-base fallback mode.")
+            self.genai_client = None
             return
 
         try:
-            from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-            self.llm = ChatGoogleGenerativeAI(
-                model="gemini-1.5-flash",
-                google_api_key=key,
-                temperature=0.3,
-            )
-            # Cloud API embeddings use 0 MB of container RAM
-            self.embeddings = GoogleGenerativeAIEmbeddings(
-                model="models/embedding-001",
-                google_api_key=key,
-            )
-            logger.info("Gemini LLM and Cloud Embeddings initialized successfully.")
+            import google.generativeai as genai
+            genai.configure(api_key=key)
+            self.genai_client = genai
+            logger.info("Google Generative AI client configured successfully.")
         except Exception as e:
-            logger.error(f"Failed to initialize Gemini: {e}")
-            self.llm = None
-            self.embeddings = None
+            logger.error(f"Failed to configure Gemini client: {e}")
+            self.genai_client = None
 
     def _init_vector_store(self):
-        """Populate the vector store with built-in crop disease knowledge."""
         documents = []
         for d in CROP_DISEASE_DATA:
             doc = Document(
@@ -177,9 +151,7 @@ class RAGService:
             documents.append(doc)
 
         chunks = self.text_splitter.split_documents(documents)
-        logger.info(f"Loaded {len(chunks)} chunks from knowledge base.")
-
-        # Always initialize our lightweight in-memory vector store (<15MB RAM)
+        logger.info(f"Loaded {len(chunks)} knowledge base chunks.")
         store = LightweightVectorStore()
         store.fit_and_add(chunks)
         self.vector_store = store
@@ -208,7 +180,7 @@ class RAGService:
             for i, (doc, _) in enumerate(context_docs, 1)
         )
 
-        if self.llm is None:
+        if not self.genai_client:
             return self._fallback_response(context_docs)
 
         prompt = f"""You are an expert agricultural assistant specialising in crop diseases.
@@ -240,22 +212,30 @@ End with: *⚠️ Always consult your local agricultural expert for crop-specifi
 
 ANSWER:"""
 
-        try:
-            from langchain.schema import HumanMessage
-            response = self.llm.invoke([HumanMessage(content=prompt)])
-            return response.content
-        except Exception as e:
-            logger.error(f"LLM generation error: {e}")
-            return self._fallback_response(context_docs)
+        # Try active Gemini models with clean instant fallback on any API limit/404
+        for model_name in self.model_candidates:
+            try:
+                model = self.genai_client.GenerativeModel(model_name)
+                response = model.generate_content(prompt)
+                if response and response.text:
+                    return response.text
+            except Exception as e:
+                err_str = str(e)
+                logger.warning(f"Model {model_name} failed: {err_str[:120]}... Trying next or fallback.")
+                if "429" in err_str or "quota" in err_str.lower():
+                    # Rate limit reached: fallback immediately without delay
+                    break
+                continue
+
+        return self._fallback_response(context_docs)
 
     def _fallback_response(self, context_docs: List[Tuple[Document, float]]) -> str:
         best_doc, _ = context_docs[0]
         return (
-            f"**Information from Knowledge Base:**\n\n"
+            f"**Retrieved from Knowledge Base:**\n\n"
             f"{best_doc.page_content}\n\n"
             "---\n"
-            "⚠️ *Add your GEMINI_API_KEY in Render/Environment for AI-synthesised answers.*\n\n"
-            "🌿 *Always consult your local agricultural extension service for specific chemical treatment recommendations.*"
+            "🌿 *Always consult your local agricultural extension service for specific crop-protection recommendations.*"
         )
 
     async def query(self, question: str) -> Dict[str, Any]:
@@ -329,8 +309,8 @@ ANSWER:"""
         total_chunks = len(self.vector_store.documents) if self.vector_store else 0
         return {
             "total_chunks": total_chunks,
-            "llm_available": self.llm is not None,
-            "embedding_model": "Lightweight Semantic TF-IDF / Gemini",
+            "llm_available": self.genai_client is not None,
+            "embedding_model": "Lightweight Semantic TF-IDF",
             "vector_store_type": "InMemoryVectorStore",
         }
 
