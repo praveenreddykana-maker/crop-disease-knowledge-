@@ -7,22 +7,16 @@ pydantic-settings==2.2.1
 # LangChain core
 langchain==0.2.1
 langchain-community==0.2.1
-langchain-huggingface==0.0.3
 
 # Google Gemini via LangChain
 langchain-google-genai==1.0.5
-
-# Embeddings (SentenceTransformers)
-sentence-transformers==2.7.0
-
-# Vector store
-faiss-cpu==1.8.0
+google-generativeai==0.5.4
 
 # Document processing
 pypdf==4.2.0
 
-# Utilities
+# Utilities & Math
+numpy==1.26.4
 python-dotenv==1.0.1
 aiofiles==23.2.1
 httpx==0.27.0
-numpy==1.26.4
