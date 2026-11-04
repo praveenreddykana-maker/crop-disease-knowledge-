@@ -12,11 +12,11 @@ export const getApiBaseUrl = () => {
       if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
         return envUrl.replace(/\/+$/, '');
       }
-      return 'https://crop-disease-knowledge.onrender.com';
+      return 'https://crop-disease-knowledge-2.onrender.com';
     }
   }
 
-  return (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+  return (import.meta.env.VITE_API_URL || 'https://crop-disease-knowledge-2.onrender.com').replace(/\/+$/, '');
 };
 
 const api = axios.create({

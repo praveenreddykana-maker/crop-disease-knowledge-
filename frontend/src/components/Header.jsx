@@ -111,7 +111,7 @@ export default function Header({ onMenuClick }) {
               </button>
             </div>
             <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-              If your backend is hosted on Render, paste its URL here (e.g. <code>https://crop-disease-knowledge.onrender.com</code>). 
+              If your backend is hosted on Render, paste its URL here (e.g. <code>https://crop-disease-knowledge-2.onrender.com</code>). 
               Render free tier spins down after inactivity and takes ~30-50s to wake up on the first request.
             </p>
             <form onSubmit={handleSaveUrl} className="space-y-4">
