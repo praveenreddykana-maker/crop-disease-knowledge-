@@ -1,3 +1,5 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
 python-multipart==0.0.9
@@ -9,7 +11,7 @@ langchain==0.2.1
 langchain-community==0.2.1
 langchain-huggingface==0.0.3
 
-# Google Gemini via LangChain (pins google-generativeai to <0.6)
+# Google Gemini via LangChain
 langchain-google-genai==1.0.5
 
 # Embeddings (SentenceTransformers)
